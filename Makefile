@@ -42,8 +42,8 @@ dev-reset: ## Wipe all dev data (volumes) and restart fresh
 
 # ─── VIDI Backend ──────────────────────────────────────────────────
 run: ## Run VIDI with hot reload (requires air)
-	@which air > /dev/null 2>&1 || go install github.com/air-verse/air@latest
-	air -c .air.toml
+	@which air > /dev/null 2>&1 || $(GOPATH)/bin/air --version > /dev/null 2>&1 || GOPROXY=https://goproxy.io,https://goproxy.cn,direct go install github.com/air-verse/air@latest
+	@PATH="$(shell go env GOPATH)/bin:$$PATH" air -c .air.toml
 
 run-once: ## Run VIDI once (no hot reload)
 	ENV_FILE=.env.dev go run ./cmd/server

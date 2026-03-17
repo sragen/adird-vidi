@@ -1,0 +1,498 @@
+{
+  "info": {
+    "name": "ADIRD — VIDI Backend",
+    "description": "Complete API collection for ADIRD VIDI ride-hailing backend.\n\n## Quick Start\n1. Set `baseUrl` variable to `http://localhost:8080`\n2. Run **Auth / Request OTP (Passenger)** — check terminal for OTP code\n3. Run **Auth / Verify OTP (Passenger)** — `access_token` auto-saved\n4. Run other passenger endpoints\n\nRepeat steps 2-3 with role=driver for driver flows.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080", "type": "string" },
+    { "key": "passengerToken", "value": "", "type": "string" },
+    { "key": "driverToken", "value": "", "type": "string" },
+    { "key": "tripId", "value": "", "type": "string" },
+    { "key": "refreshToken", "value": "", "type": "string" },
+    { "key": "driverRefreshToken", "value": "", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/health",
+            "description": "Returns service status and environment."
+          }
+        },
+        {
+          "name": "Ping",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/ping"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Request OTP — Passenger",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/v1/auth/otp/request",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"+628111000001\",\n  \"role\": \"user\"\n}"
+            },
+            "description": "Sends OTP to phone. In dev mode, OTP is printed to the server terminal (ConsoleSMS).\n\nCheck your `make run` terminal output for the code."
+          }
+        },
+        {
+          "name": "Verify OTP — Passenger",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.access_token) {",
+                  "  pm.collectionVariables.set('passengerToken', res.access_token);",
+                  "  pm.collectionVariables.set('refreshToken', res.refresh_token);",
+                  "  console.log('Passenger token saved');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/v1/auth/otp/verify",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"+628111000001\",\n  \"role\": \"user\",\n  \"code\": \"123456\"\n}"
+            },
+            "description": "Replace `code` with the OTP shown in the server terminal.\n\nOn success, `passengerToken` and `refreshToken` are auto-saved to collection variables."
+          }
+        },
+        {
+          "name": "Request OTP — Driver",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/v1/auth/otp/request",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"+628222000001\",\n  \"role\": \"driver\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Verify OTP — Driver",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.access_token) {",
+                  "  pm.collectionVariables.set('driverToken', res.access_token);",
+                  "  pm.collectionVariables.set('driverRefreshToken', res.refresh_token);",
+                  "  console.log('Driver token saved');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/v1/auth/otp/verify",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"+628222000001\",\n  \"role\": \"driver\",\n  \"code\": \"123456\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Refresh Token — Passenger",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.access_token) {",
+                  "  pm.collectionVariables.set('passengerToken', res.access_token);",
+                  "  pm.collectionVariables.set('refreshToken', res.refresh_token);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/v1/auth/token/refresh",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refresh_token\": \"{{refreshToken}}\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Refresh Token — Driver",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.access_token) {",
+                  "  pm.collectionVariables.set('driverToken', res.access_token);",
+                  "  pm.collectionVariables.set('driverRefreshToken', res.refresh_token);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/v1/auth/token/refresh",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refresh_token\": \"{{driverRefreshToken}}\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Me (token check)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/me",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{passengerToken}}" }
+            ],
+            "description": "Returns user_id and role from the JWT. Use driverToken to check driver identity."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Driver",
+      "item": [
+        {
+          "name": "Get Profile",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/driver/profile",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{driverToken}}" }
+            ],
+            "description": "Returns driver profile. New drivers will have name=null, vehicle_type=motor, plate_number=PENDING."
+          }
+        },
+        {
+          "name": "Update Profile",
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/api/v1/driver/profile",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{driverToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Budi Santoso\",\n  \"vehicle_type\": \"motor\",\n  \"plate_number\": \"B 1234 XYZ\"\n}"
+            },
+            "description": "vehicle_type: motor | car\nplate_number must not be PENDING to go online."
+          }
+        },
+        {
+          "name": "Set Status — Online",
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/api/v1/driver/status",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{driverToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"online\",\n  \"lat\": -6.2088,\n  \"lng\": 106.8456\n}"
+            },
+            "description": "Registers driver in Redis GEO set `drivers:online` at given coordinates.\nRequires complete profile (plate_number != PENDING)."
+          }
+        },
+        {
+          "name": "Set Status — Offline",
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/api/v1/driver/status",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{driverToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"offline\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Update FCM Token",
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/api/v1/driver/fcm-token",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{driverToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fcm_token\": \"faketoken_for_dev_testing_123\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Order (Passenger)",
+      "item": [
+        {
+          "name": "Create Order",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.trip_id) {",
+                  "  pm.collectionVariables.set('tripId', res.trip_id);",
+                  "  console.log('Trip ID saved:', res.trip_id);",
+                  "  console.log('MQTT topic:', res.mqtt_topic);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/v1/order",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{passengerToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"pickup_lat\": -6.2088,\n  \"pickup_lng\": 106.8456,\n  \"pickup_address\": \"Jl. Sudirman No.1, Jakarta\",\n  \"dropoff_lat\": -6.1750,\n  \"dropoff_lng\": 106.8272,\n  \"dropoff_address\": \"Jl. Thamrin No.5, Jakarta\",\n  \"vehicle_type\": \"motor\"\n}"
+            },
+            "description": "Creates a trip and starts async dispatch.\n\n`trip_id` is auto-saved to collection variable.\n`mqtt_topic` is the topic to subscribe for real-time status updates.\n\nDispatch will search for nearby online drivers within 5km radius (up to 3 rounds)."
+          }
+        },
+        {
+          "name": "Get Trip",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/order/{{tripId}}",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{passengerToken}}" }
+            ],
+            "description": "Returns full trip details including status, driver info, fare, and route."
+          }
+        },
+        {
+          "name": "Cancel Order",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/v1/order/{{tripId}}",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{passengerToken}}" }
+            ],
+            "description": "Passenger cancels trip. Only works when status is not completed/cancelled."
+          }
+        },
+        {
+          "name": "Trip History",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/order/history?page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "order", "history"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" }
+              ]
+            },
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{passengerToken}}" }
+            ],
+            "description": "Paginated list of passenger's past trips."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Trip State Machine (Driver)",
+      "description": "Trip flow: accepted → en_route → arrived → ongoing → completed\n\nPrerequisite: Driver must have accepted a dispatch offer via MQTT.\nFor testing without MQTT, manually set a trip to 'accepted' status in the DB.",
+      "item": [
+        {
+          "name": "1. En Route (heading to pickup)",
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/api/v1/trip/{{tripId}}/en-route",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{driverToken}}" }
+            ],
+            "description": "Transition: accepted → en_route\nDriver is heading to pickup location."
+          }
+        },
+        {
+          "name": "2. Arrived (at pickup)",
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/api/v1/trip/{{tripId}}/arrived",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{driverToken}}" }
+            ],
+            "description": "Transition: en_route → arrived\nSets driver_arrived_at timestamp."
+          }
+        },
+        {
+          "name": "3. Start Trip",
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/api/v1/trip/{{tripId}}/start",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{driverToken}}" }
+            ],
+            "description": "Transition: arrived → ongoing\nSets started_at timestamp."
+          }
+        },
+        {
+          "name": "4. Complete Trip",
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/api/v1/trip/{{tripId}}/complete",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{driverToken}}" }
+            ],
+            "description": "Transition: ongoing → completed\nIncrements driver.total_trips, resets driver to online, triggers async ETA correction recording."
+          }
+        },
+        {
+          "name": "Cancel Trip (Driver)",
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/api/v1/trip/{{tripId}}/cancel",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{driverToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"passenger not responding\"\n}"
+            },
+            "description": "Driver cancels trip at any non-terminal state.\nIncrements driver.cancellation_score by 0.1 (max 1.0)."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Rating",
+      "item": [
+        {
+          "name": "Rate Trip (Passenger rates Driver)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/v1/trip/{{tripId}}/rate",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{passengerToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"score\": 5,\n  \"comment\": \"Great driver, on time!\"\n}"
+            },
+            "description": "score: 1–5\nOnly works on completed trips.\nUpdates driver's average rating in a transaction."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Debug / Dev Helpers",
+      "description": "Useful for testing without MQTT or a real Android app.",
+      "item": [
+        {
+          "name": "Create Order (near driver)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.trip_id) {",
+                  "  pm.collectionVariables.set('tripId', res.trip_id);",
+                  "  console.log('Trip ID:', res.trip_id);",
+                  "  console.log('Fare:', res.final_fare);",
+                  "  console.log('MQTT topic:', res.mqtt_topic);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/v1/order",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{passengerToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"pickup_lat\": -6.2088,\n  \"pickup_lng\": 106.8456,\n  \"pickup_address\": \"Jl. Sudirman No.1\",\n  \"dropoff_lat\": -6.2500,\n  \"dropoff_lng\": 106.8300,\n  \"dropoff_address\": \"Blok M Plaza\",\n  \"vehicle_type\": \"motor\"\n}"
+            },
+            "description": "Pickup at Sudirman (-6.2088, 106.8456).\nMake sure driver is online at same grid cell for dispatch to find them."
+          }
+        },
+        {
+          "name": "Create Order (surge test — high demand area)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/v1/order",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{passengerToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"pickup_lat\": -6.2150,\n  \"pickup_lng\": 106.8450,\n  \"pickup_address\": \"Test surge area\",\n  \"dropoff_lat\": -6.2500,\n  \"dropoff_lng\": 106.8300,\n  \"dropoff_address\": \"Blok M\",\n  \"vehicle_type\": \"motor\"\n}"
+            },
+            "description": "Run this request 5+ times quickly to build up surge demand counter in Redis.\nWatch the final_fare increase with each order."
+          }
+        },
+        {
+          "name": "Get Trip (check dispatch result)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/order/{{tripId}}",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{passengerToken}}" }
+            ],
+            "description": "Poll this after Create Order to see if dispatch found a driver.\nStatus will change: searching → accepted (if driver found) or cancelled (no drivers after 3 rounds)."
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -43,11 +43,13 @@ func NewClient(cfg config.MQTTConfig, rdb *redis.Client) (*Client, error) {
 		SetClientID(cfg.ClientID).
 		SetCleanSession(cfg.CleanSession).
 		SetAutoReconnect(true).
+		SetResumeSubs(true).
 		SetMaxReconnectInterval(30 * time.Second).
 		SetKeepAlive(30 * time.Second).
 		SetOnConnectHandler(func(client pahomqtt.Client) {
 			log.Info().Str("broker", cfg.BrokerURL).Msg("MQTT connected")
-			c.resubscribe(client)
+			// Run in goroutine — paho's internal state isn't fully ready inside OnConnectHandler
+			go c.resubscribe(client)
 		}).
 		SetConnectionLostHandler(func(client pahomqtt.Client, err error) {
 			log.Warn().Err(err).Msg("MQTT connection lost — will reconnect")
