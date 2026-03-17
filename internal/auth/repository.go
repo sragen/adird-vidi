@@ -41,18 +41,23 @@ func (r *Repository) SaveOTP(ctx context.Context, phone, role, code string) erro
 	return r.rdb.Set(ctx, otpKey(phone, role), code, otpTTL).Err()
 }
 
-// VerifyOTP checks and deletes the OTP atomically.
+// VerifyOTP checks the OTP and only deletes it if the code matches.
 // Returns false if not found or wrong code.
 func (r *Repository) VerifyOTP(ctx context.Context, phone, role, code string) (bool, error) {
 	key := otpKey(phone, role)
-	stored, err := r.rdb.GetDel(ctx, key).Result()
+	stored, err := r.rdb.Get(ctx, key).Result()
 	if err == redis.Nil {
-		return false, nil
+		return false, nil // expired or never requested
 	}
 	if err != nil {
 		return false, err
 	}
-	return stored == code, nil
+	if stored != code {
+		return false, nil // wrong code — keep key so user can retry
+	}
+	// Correct — delete it (one-time use)
+	r.rdb.Del(ctx, key)
+	return true, nil
 }
 
 // CheckRateLimit returns true if the phone is allowed to request an OTP.

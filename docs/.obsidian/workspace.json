@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "16-scale-50k.md",
+                "file": "progress.md",
                 "mode": "preview",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "16-scale-50k"
+              "title": "progress"
             }
           }
         ]
@@ -185,12 +185,14 @@
   },
   "active": "4b9d533afb12e67b",
   "lastOpenFiles": [
-    "15-vini-dashboard.md",
-    "14-mqtt-architecture.md",
     "13-roadmap.md",
+    "progress.md",
+    "15-vini-dashboard.md",
+    "16-scale-50k.md",
+    "adird-vidi.postman_collection.json",
+    "14-mqtt-architecture.md",
     "00-index.md",
     "05-realtime-tracking.md",
-    "16-scale-50k.md",
     "04-dispatch-algorithm.md",
     "06-eta-prediction.md",
     "03-map-navigation-stack.md",

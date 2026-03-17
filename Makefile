@@ -41,7 +41,8 @@ dev-reset: ## Wipe all dev data (volumes) and restart fresh
 	docker compose -f docker-compose.dev.yml up -d emqx postgres redis
 
 # ─── VIDI Backend ──────────────────────────────────────────────────
-run: ## Run VIDI with hot reload (requires air)
+run: ## Run VIDI with hot reload (kills :8080 first if occupied)
+	@lsof -ti :8080 | xargs kill -9 2>/dev/null || true
 	@which air > /dev/null 2>&1 || $(GOPATH)/bin/air --version > /dev/null 2>&1 || GOPROXY=https://goproxy.io,https://goproxy.cn,direct go install github.com/air-verse/air@latest
 	@PATH="$(shell go env GOPATH)/bin:$$PATH" air -c .air.toml
 
