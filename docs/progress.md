@@ -93,7 +93,15 @@ Last updated: 2026-03-17 (session 3)
 ---
 
 ## VICI — Kotlin Android (Driver App)
-- [ ] Project scaffold (Kotlin + Compose + Hilt)
+### Design System (pre-scaffold) ✅
+- [x] Color palette — "Stormy Morning" (#6A89A7 / #BDDFC / #88BDF2 / #384959)
+- [x] `docs/design/vici/Color.kt` — Compose color tokens + semantic colors
+- [x] `docs/design/vici/Theme.kt` — Material3 lightColorScheme + Plus Jakarta Sans typography
+- [x] `docs/design/vici/map_style.json` — Custom MapLibre GL style (OpenFreeMap tiles, Stormy Morning colors)
+- [x] `docs/design/vici/MapStyle.kt` — MapStyleConfig, layer IDs, source IDs, app overlay colors
+
+### Scaffold (next)
+- [ ] Project scaffold (Kotlin + Compose + Hilt + MapLibre Android SDK)
 - [ ] OTP login screen
 - [ ] Dashboard (online/offline toggle)
 - [ ] GPS publishing to MQTT
