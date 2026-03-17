@@ -2,10 +2,12 @@ package admin
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"strconv"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/jackc/pgx/v5"
 	"github.com/rs/zerolog/log"
 
 	"adird.id/vidi/internal/auth"
@@ -25,12 +27,24 @@ func (h *Handler) Routes(authSvc *auth.Service) chi.Router {
 	r := chi.NewRouter()
 	r.Use(auth.Middleware(authSvc))
 	r.Use(auth.RequireRole(auth.RoleAdmin, authSvc))
+
+	// Driver endpoints
 	r.Get("/drivers", h.listDrivers)
+	r.Get("/drivers/{driverID}", h.getDriver)
+
+	// Trip endpoints — static "active" must be before parameterized {tripID}
+	r.Get("/trips/active", h.listActiveTrips)
 	r.Get("/trips", h.listTrips)
+	r.Get("/trips/{tripID}/trace", h.getTripTrace)
+
+	// Analytics
+	r.Get("/analytics/summary", h.getAnalyticsSummary)
+
 	return r
 }
 
-// GET /api/v1/admin/drivers?page=1&limit=20
+// ─── GET /api/v1/admin/drivers ────────────────────────────────────
+
 func (h *Handler) listDrivers(w http.ResponseWriter, r *http.Request) {
 	limit, page := parsePagination(r)
 	offset := (page - 1) * limit
@@ -47,8 +61,6 @@ func (h *Handler) listDrivers(w http.ResponseWriter, r *http.Request) {
 		jsonError(w, "internal error", http.StatusInternalServerError)
 		return
 	}
-
-	// Return empty array, not null
 	if drivers == nil {
 		drivers = []*shared.Driver{}
 	}
@@ -61,7 +73,26 @@ func (h *Handler) listDrivers(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// GET /api/v1/admin/trips?page=1&limit=20
+// ─── GET /api/v1/admin/drivers/{driverID} ────────────────────────
+
+func (h *Handler) getDriver(w http.ResponseWriter, r *http.Request) {
+	driverID := chi.URLParam(r, "driverID")
+	d, err := h.repo.GetDriver(r.Context(), driverID)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			jsonError(w, "driver not found", http.StatusNotFound)
+		} else {
+			log.Error().Err(err).Str("driver", driverID).Msg("admin: get driver")
+			jsonError(w, "internal error", http.StatusInternalServerError)
+		}
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(d)
+}
+
+// ─── GET /api/v1/admin/trips ──────────────────────────────────────
+
 func (h *Handler) listTrips(w http.ResponseWriter, r *http.Request) {
 	limit, page := parsePagination(r)
 	offset := (page - 1) * limit
@@ -78,7 +109,6 @@ func (h *Handler) listTrips(w http.ResponseWriter, r *http.Request) {
 		jsonError(w, "internal error", http.StatusInternalServerError)
 		return
 	}
-
 	if trips == nil {
 		trips = []TripRow{}
 	}
@@ -89,6 +119,60 @@ func (h *Handler) listTrips(w http.ResponseWriter, r *http.Request) {
 		"total": total,
 		"page":  page,
 	})
+}
+
+// ─── GET /api/v1/admin/trips/active ──────────────────────────────
+
+func (h *Handler) listActiveTrips(w http.ResponseWriter, r *http.Request) {
+	trips, err := h.repo.ListActiveTrips(r.Context())
+	if err != nil {
+		log.Error().Err(err).Msg("admin: list active trips")
+		jsonError(w, "internal error", http.StatusInternalServerError)
+		return
+	}
+	if trips == nil {
+		trips = []TripRow{}
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"trips": trips,
+	})
+}
+
+// ─── GET /api/v1/admin/trips/{tripID}/trace ───────────────────────
+
+func (h *Handler) getTripTrace(w http.ResponseWriter, r *http.Request) {
+	tripID := chi.URLParam(r, "tripID")
+	points, err := h.repo.GetTripTrace(r.Context(), tripID)
+	if err != nil {
+		log.Error().Err(err).Str("trip", tripID).Msg("admin: get trip trace")
+		jsonError(w, "internal error", http.StatusInternalServerError)
+		return
+	}
+	if points == nil {
+		points = []TripTracePoint{}
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"trip_id": tripID,
+		"points":  points,
+		"count":   len(points),
+	})
+}
+
+// ─── GET /api/v1/admin/analytics/summary ─────────────────────────
+
+func (h *Handler) getAnalyticsSummary(w http.ResponseWriter, r *http.Request) {
+	s, err := h.repo.GetAnalyticsSummary(r.Context())
+	if err != nil {
+		log.Error().Err(err).Msg("admin: analytics summary")
+		jsonError(w, "internal error", http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(s)
 }
 
 // ─── helpers ──────────────────────────────────────────────────────

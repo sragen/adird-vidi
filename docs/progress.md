@@ -80,14 +80,15 @@ Last updated: 2026-03-17 (session 3)
 - [x] Vite proxy `/api` → `http://localhost:8080`
 - [x] Build verified clean (tsc + vite build)
 
-### Layer 2: Enhancements (next)
+### Layer 2: Enhancements ✅
 - [x] Admin endpoints in VIDI (`/admin/drivers`, `/admin/trips`) — RequireRole("admin")
 - [x] VINI Drivers + Trips pages now call admin endpoints (all data, not caller-scoped)
 - [x] VINI login uses `role: 'admin'` — separate from driver/passenger
-- [ ] Driver detail drawer on map click
-- [ ] Real-time dispatch monitor (poll every 5s)
-- [ ] Surge zone overlay on map
-- [ ] Trip detail modal with GPS trace
+- [x] Driver detail drawer on map click — interactiveLayerIds + onClick + GET /admin/drivers/:id
+- [x] Real-time dispatch monitor — DispatchPage.tsx, 5s polling, elapsed timer, card grid
+- [x] Surge zone overlay on map — GeoJSON circle layer, MQTT-driven, amber→red by multiplier
+- [x] Trip detail modal with GPS trace — TripDetailModal.tsx, mini MapLibre map, LineString trace
+- [x] VIDI admin endpoints: GET /admin/drivers/:id, /admin/trips/active, /admin/trips/:id/trace, /analytics/summary
 
 ---
 
