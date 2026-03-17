@@ -16,6 +16,7 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 
+	"adird.id/vidi/internal/admin"
 	"adird.id/vidi/internal/auth"
 	"adird.id/vidi/internal/config"
 	drivermod "adird.id/vidi/internal/driver"
@@ -121,6 +122,10 @@ func main() {
 	tripStateRepo := order.NewTripStateRepo(dbPool, rdb)
 	tripHandler := order.NewTripStateHandler(tripStateRepo, mqttClient)
 
+	// ─── Admin ─────────────────────────────────────────────────────
+	adminRepo := admin.NewRepository(dbPool)
+	adminHandler := admin.NewHandler(adminRepo)
+
 	// API routes
 	r.Route("/api/v1", func(r chi.Router) {
 		r.Get("/ping", func(w http.ResponseWriter, r *http.Request) {
@@ -129,6 +134,7 @@ func main() {
 		})
 
 		r.Mount("/auth", authHandler.Routes())
+		r.Mount("/admin", adminHandler.Routes(authSvc))
 		r.Mount("/driver", driverHandler.Routes(authSvc))
 		r.Mount("/order", orderHandler.Routes(authSvc))
 		r.Mount("/trip", tripHandler.Routes(authSvc))

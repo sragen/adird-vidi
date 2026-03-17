@@ -1,6 +1,6 @@
 # ADIRD Build Progress
 
-Last updated: 2026-03-17
+Last updated: 2026-03-17 (session 3)
 
 ## VIDI — Go Backend
 
@@ -8,7 +8,7 @@ Last updated: 2026-03-17
 - [x] Project scaffold (`cmd/server/main.go`, `go.mod`, `internal/config`)
 - [x] PostgreSQL 16 + Redis 7 + EMQX 5.7 via docker-compose
 - [x] Database migrations (`migrations/000001_initial_schema`)
-- [x] Air hot-reload (`make run`)
+- [x] Air hot-reload (`make run`) — auto-kills :8080 on start
 - [x] Health check endpoint
 
 ### Layer 2: Auth ✅
@@ -50,14 +50,44 @@ Last updated: 2026-03-17
 - [x] GeoSearchLocation `.Result()` fix
 - [x] Trip state machine timestamp column fix (en_route = no timestamp)
 - [x] Surge grid key precision fix
-- [x] MQTT CleanSession + ResumeSubs fix
+- [x] MQTT CleanSession + ResumeSubs + goroutine fix
 - [x] Air PATH fix in Makefile (GOPATH/bin)
-- [x] Port 8080 orphan process documentation
+- [x] Port 8080 auto-kill baked into `make run`
+- [x] OTP GetDel → Get+conditional Del (retries now work)
+- [x] PENDING plate unique violation → md5(phone)[0:8] unique placeholder per driver
+- [x] Admin auth — new `admins` table (migration 000002), seeded admin, `role: 'admin'` in JWT
 
 ### Tooling ✅
 - [x] Postman collection (`docs/adird-vidi.postman_collection.json`)
 - [x] `.gitignore`
-- [x] Initial git commit
+- [x] Git pushed to https://github.com/sragen/adird-vidi.git
+- [x] Progress checklist (`docs/progress.md`)
+
+---
+
+## VINI — React Ops Dashboard
+
+### Layer 1: Scaffold + Core Pages ✅
+- [x] Vite 8 + React 18 + TypeScript + Tailwind CSS v4
+- [x] Zustand stores (driversStore, zonesStore, alertsStore)
+- [x] MQTT.js client (ws://localhost:8083/mqtt, auto-reconnect)
+- [x] Login page — OTP flow, JWT saved to localStorage
+- [x] Sidebar navigation (4 pages)
+- [x] Live map — MapLibre GL, MQTT driver dots (green/amber/red), Jakarta center
+- [x] Drivers page — table with status/rating/trips/cancel%
+- [x] Trips page — paginated history with fare/distance/status badges
+- [x] Analytics page — KPI cards, daily trips bar chart, revenue line chart
+- [x] Vite proxy `/api` → `http://localhost:8080`
+- [x] Build verified clean (tsc + vite build)
+
+### Layer 2: Enhancements (next)
+- [x] Admin endpoints in VIDI (`/admin/drivers`, `/admin/trips`) — RequireRole("admin")
+- [x] VINI Drivers + Trips pages now call admin endpoints (all data, not caller-scoped)
+- [x] VINI login uses `role: 'admin'` — separate from driver/passenger
+- [ ] Driver detail drawer on map click
+- [ ] Real-time dispatch monitor (poll every 5s)
+- [ ] Surge zone overlay on map
+- [ ] Trip detail modal with GPS trace
 
 ---
 
@@ -70,9 +100,12 @@ Last updated: 2026-03-17
 - [ ] Trip flow screens (en_route → complete)
 - [ ] Earnings summary
 
-## VINI — React Dashboard (Ops)
-- [ ] Project scaffold
-- [ ] Live map with driver positions
-- [ ] Trip monitoring table
-- [ ] Surge zone heatmap
-- [ ] Basic analytics
+---
+
+## Dev Tools Installed
+- [x] OrbStack (Docker alternative for Apple Silicon)
+- [x] golang-migrate
+- [x] air (Go hot-reload) — ~/go/bin/air
+- [x] gh CLI v2.88.1
+- [x] Node 22 — /usr/local/opt/node@22/bin
+- [x] RedisInsight 3.2.0 — /Applications

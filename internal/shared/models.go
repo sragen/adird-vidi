@@ -21,6 +21,15 @@ type User struct {
 	CreatedAt time.Time `json:"created_at" db:"created_at"`
 }
 
+// ─── Admin (ops dashboard users) ──────────────────────────────────
+
+type Admin struct {
+	ID        string    `json:"id" db:"id"`
+	Phone     string    `json:"phone" db:"phone"`
+	Name      string    `json:"name" db:"name"`
+	CreatedAt time.Time `json:"created_at" db:"created_at"`
+}
+
 // ─── Driver ───────────────────────────────────────────────────────
 
 type DriverStatus string

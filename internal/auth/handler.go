@@ -80,7 +80,9 @@ func (h *Handler) verifyOTP(w http.ResponseWriter, r *http.Request) {
 		case errors.Is(err, ErrInvalidOTP):
 			jsonError(w, "invalid or expired OTP", http.StatusUnauthorized)
 		case errors.Is(err, ErrUnknownRole):
-			jsonError(w, "role must be 'user' or 'driver'", http.StatusBadRequest)
+			jsonError(w, "role must be 'user', 'driver', or 'admin'", http.StatusBadRequest)
+		case errors.Is(err, ErrAdminNotFound):
+			jsonError(w, "phone not registered as admin", http.StatusForbidden)
 		default:
 			log.Error().Err(err).Msg("verifyOTP failed")
 			jsonError(w, "internal error", http.StatusInternalServerError)

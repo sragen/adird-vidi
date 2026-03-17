@@ -16,13 +16,15 @@ var (
 	ErrInvalidToken  = errors.New("invalid or expired token")
 	ErrRateLimited   = errors.New("too many OTP requests, try again later")
 	ErrInvalidOTP    = errors.New("invalid or expired OTP")
-	ErrUnknownRole   = errors.New("role must be 'user' or 'driver'")
+	ErrUnknownRole   = errors.New("role must be 'user', 'driver', or 'admin'")
+	ErrAdminNotFound = errors.New("phone not registered as admin")
 )
 
 const (
 	accessTTL  = 15 * time.Minute
 	RoleUser   = "user"
 	RoleDriver = "driver"
+	RoleAdmin  = "admin"
 )
 
 // Claims is the JWT payload.
@@ -57,7 +59,7 @@ func NewService(repo *Repository, jwtSecret string, sms SMSSender) *Service {
 
 // RequestOTP generates a 6-digit OTP, stores in Redis, sends via SMS.
 func (s *Service) RequestOTP(ctx context.Context, phone, role string) error {
-	if role != RoleUser && role != RoleDriver {
+	if role != RoleUser && role != RoleDriver && role != RoleAdmin {
 		return ErrUnknownRole
 	}
 
@@ -85,7 +87,7 @@ func (s *Service) RequestOTP(ctx context.Context, phone, role string) error {
 // VerifyOTP validates the OTP and issues JWT pair.
 // Returns accessToken, refreshToken, userID.
 func (s *Service) VerifyOTP(ctx context.Context, phone, role, code string) (access, refresh, userID string, err error) {
-	if role != RoleUser && role != RoleDriver {
+	if role != RoleUser && role != RoleDriver && role != RoleAdmin {
 		return "", "", "", ErrUnknownRole
 	}
 
@@ -97,7 +99,7 @@ func (s *Service) VerifyOTP(ctx context.Context, phone, role, code string) (acce
 		return "", "", "", ErrInvalidOTP
 	}
 
-	// Upsert user/driver record
+	// Find or create user/driver record; admin must already exist in DB.
 	switch role {
 	case RoleUser:
 		u, err := s.repo.FindOrCreateUser(ctx, phone)
@@ -111,6 +113,12 @@ func (s *Service) VerifyOTP(ctx context.Context, phone, role, code string) (acce
 			return "", "", "", err
 		}
 		userID = d.ID
+	case RoleAdmin:
+		a, err := s.repo.FindAdminByPhone(ctx, phone)
+		if err != nil {
+			return "", "", "", ErrAdminNotFound
+		}
+		userID = a.ID
 	}
 
 	access, refresh, err = s.issueTokenPair(ctx, userID, role)

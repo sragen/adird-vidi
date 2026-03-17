@@ -2,9 +2,11 @@ package auth
 
 import (
 	"context"
+	"crypto/md5"
 	"fmt"
 	"time"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
 
@@ -127,17 +129,25 @@ func (r *Repository) FindOrCreateUser(ctx context.Context, phone string) (*share
 	return u, nil
 }
 
+// phonePlaceholderPlate generates a unique placeholder plate for new drivers.
+// Uses first 8 hex chars of md5(phone) to ensure uniqueness across the UNIQUE constraint.
+func phonePlaceholderPlate(phone string) string {
+	sum := md5.Sum([]byte(phone))
+	return fmt.Sprintf("P-%x", sum[:4]) // "P-" + 8 hex chars = 10 chars, fits VARCHAR(15)
+}
+
 // FindOrCreateDriver upserts a driver by phone and returns their record.
 // vehicle_type and plate_number get placeholder values on first creation;
 // the driver completes their profile in a separate onboarding step.
 func (r *Repository) FindOrCreateDriver(ctx context.Context, phone string) (*shared.Driver, error) {
 	d := &shared.Driver{}
+	plate := phonePlaceholderPlate(phone)
 	err := r.db.QueryRow(ctx, `
 		INSERT INTO drivers (phone, vehicle_type, plate_number)
-		VALUES ($1, 'motor', 'PENDING')
+		VALUES ($1, 'motor', $2)
 		ON CONFLICT (phone) DO UPDATE SET updated_at = NOW()
 		RETURNING id, phone, name, vehicle_type, plate_number, status, rating, total_trips, created_at
-	`, phone).Scan(
+	`, phone, plate).Scan(
 		&d.ID, &d.Phone, &d.Name, &d.VehicleType,
 		&d.PlateNumber, &d.Status, &d.Rating, &d.TotalTrips, &d.CreatedAt,
 	)
@@ -145,4 +155,22 @@ func (r *Repository) FindOrCreateDriver(ctx context.Context, phone string) (*sha
 		return nil, fmt.Errorf("upsert driver: %w", err)
 	}
 	return d, nil
+}
+
+// ─── Admin Lookup ──────────────────────────────────────────────────
+
+// FindAdminByPhone returns an admin record by phone.
+// Returns an error if the phone is not in the admins table (no self-registration).
+func (r *Repository) FindAdminByPhone(ctx context.Context, phone string) (*shared.Admin, error) {
+	a := &shared.Admin{}
+	err := r.db.QueryRow(ctx, `
+		SELECT id, phone, name, created_at FROM admins WHERE phone = $1
+	`, phone).Scan(&a.ID, &a.Phone, &a.Name, &a.CreatedAt)
+	if err == pgx.ErrNoRows {
+		return nil, fmt.Errorf("admin not found for phone %s", phone)
+	}
+	if err != nil {
+		return nil, fmt.Errorf("find admin: %w", err)
+	}
+	return a, nil
 }
