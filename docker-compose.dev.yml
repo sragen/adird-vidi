@@ -1,0 +1,90 @@
+# ADIRD Local Development Stack
+# Usage: docker compose -f docker-compose.dev.yml up -d
+#
+# Services:
+#   - EMQX     : MQTT broker           → mqtt://localhost:1883
+#   - PostgreSQL: Database              → localhost:5432
+#   - Redis    : Cache + live data      → localhost:6379
+#   - OSRM     : Routing engine         → http://localhost:5000
+
+services:
+
+  # ─── EMQX MQTT Broker ──────────────────────────────────────────
+  emqx:
+    image: emqx/emqx:5.7.0
+    container_name: adird_emqx
+    ports:
+      - "1883:1883"    # MQTT TCP
+      - "8083:8083"    # MQTT over WebSocket (VINI browser)
+      - "18083:18083"  # EMQX Dashboard (admin UI)
+    environment:
+      EMQX_NODE__NAME: "emqx@127.0.0.1"
+      EMQX_RPC__PORT_DISCOVERY: "manual"
+      # Dev: allow all connections (no authentication)
+      EMQX_AUTHORIZATION__NO_MATCH: "allow"
+      EMQX_AUTHORIZATION__DENY_ACTION: "ignore"
+      EMQX_DASHBOARD__DEFAULT_PASSWORD: "adird_dev_123"
+    volumes:
+      - emqx_data:/opt/emqx/data
+      - emqx_log:/opt/emqx/log
+    healthcheck:
+      test: ["CMD", "/opt/emqx/bin/emqx", "ctl", "status"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  # ─── PostgreSQL ────────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: adird_postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: adird_dev
+      POSTGRES_USER: adird
+      POSTGRES_PASSWORD: adird_dev_secret
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "adird", "-d", "adird_dev"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  # ─── Redis ─────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: adird_redis
+    ports:
+      - "6379:6379"
+    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  # ─── OSRM ──────────────────────────────────────────────────────
+  # NOTE: run `make osrm-build` first to prepare the Jakarta map data
+  osrm:
+    image: ghcr.io/project-osrm/osrm-backend:v5.27.1
+    container_name: adird_osrm
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./scripts/osrm-data:/data
+    command: osrm-routed --algorithm mld /data/jakarta.osrm --port 5000
+    profiles:
+      - osrm   # only start when: docker compose --profile osrm up
+    restart: unless-stopped
+
+volumes:
+  emqx_data:
+  emqx_log:
+  pgdata:
+  redisdata:

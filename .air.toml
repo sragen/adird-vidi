@@ -1,0 +1,24 @@
+# air — hot reload config for VIDI backend
+root = "."
+tmp_dir = "tmp"
+
+[build]
+  cmd = "go build -o ./tmp/vidi ./cmd/server"
+  bin = "./tmp/vidi"
+  full_bin = "ENV_FILE=.env.dev ./tmp/vidi"
+  include_ext = ["go"]
+  exclude_dir  = ["tmp", "docs", "scripts", "vendor"]
+  delay = 500
+
+[log]
+  time = true
+  main_only = false
+
+[color]
+  main    = "magenta"
+  watcher = "cyan"
+  build   = "yellow"
+  runner  = "green"
+
+[misc]
+  clean_on_exit = true

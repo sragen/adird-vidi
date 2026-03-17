@@ -1,0 +1,40 @@
+# Binaries
+/tmp/
+/bin/
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Go build cache
+*.test
+*.out
+coverage.txt
+
+# Air hot-reload
+tmp/
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+*.local
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OSRM data (large binary files)
+osrm/data/
+*.osrm
+*.osrm.*
+*.pbf
+
+# Docker volumes (not tracked)
+volumes/

@@ -1,0 +1,23 @@
+{
+  "collapse-filter": false,
+  "search": "",
+  "showTags": true,
+  "showAttachments": false,
+  "hideUnresolved": false,
+  "showOrphans": true,
+  "collapse-color-groups": false,
+  "colorGroups": [
+    {
+      "query": "tag:#architecture",
+      "color": { "a": 1, "rgb": 4040955 }
+    },
+    {
+      "query": "tag:#design",
+      "color": { "a": 1, "rgb": 14423100 }
+    },
+    {
+      "query": "tag:#roadmap",
+      "color": { "a": 1, "rgb": 9175041 }
+    }
+  ]
+}
