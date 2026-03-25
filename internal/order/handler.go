@@ -33,6 +33,7 @@ func (h *Handler) Routes(authSvc *auth.Service) chi.Router {
 	r.Group(func(r chi.Router) {
 		r.Use(auth.RequireRole(auth.RoleUser, authSvc))
 		r.Post("/", h.createOrder)
+		r.Post("/estimate", h.estimateOrder)
 		r.Delete("/{tripID}", h.cancelOrder)
 	})
 
@@ -198,6 +199,57 @@ func (h *Handler) cancelOrder(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]string{"status": "cancelled"})
+}
+
+// ─── POST /api/v1/order/estimate ─────────────────────────────────
+// Returns a fare estimate without creating a trip or starting dispatch.
+// Passengers use this to preview the price before confirming booking.
+//
+// Body: same as createOrder but without address fields (optional).
+func (h *Handler) estimateOrder(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		PickupLat   float64 `json:"pickup_lat"`
+		PickupLng   float64 `json:"pickup_lng"`
+		DropoffLat  float64 `json:"dropoff_lat"`
+		DropoffLng  float64 `json:"dropoff_lng"`
+		VehicleType string  `json:"vehicle_type"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		jsonError(w, "invalid request body", http.StatusBadRequest)
+		return
+	}
+	if req.PickupLat == 0 || req.PickupLng == 0 || req.DropoffLat == 0 || req.DropoffLng == 0 {
+		jsonError(w, "pickup and dropoff coordinates are required", http.StatusBadRequest)
+		return
+	}
+	if req.VehicleType == "" {
+		req.VehicleType = "motor"
+	}
+
+	fc, err := h.repo.GetActiveFareConfig(r.Context(), req.VehicleType)
+	if err != nil {
+		log.Error().Err(err).Msg("estimateOrder: get fare config")
+		jsonError(w, "internal error", http.StatusInternalServerError)
+		return
+	}
+
+	distMeters, durationSec, _ := h.routeEstimate(r, req.PickupLat, req.PickupLng, req.DropoffLat, req.DropoffLng)
+
+	surgeMultiplier := 1.0
+	if h.surge != nil {
+		surgeMultiplier = h.surge.GetMultiplier(r.Context(), req.PickupLat, req.PickupLng)
+	}
+
+	baseFare, finalFare := CalculateFare(fc, distMeters, durationSec, surgeMultiplier)
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"base_fare":        baseFare,
+		"final_fare":       finalFare,
+		"surge_multiplier": surgeMultiplier,
+		"distance_meters":  distMeters,
+		"duration_seconds": durationSec,
+	})
 }
 
 // routeEstimate tries OSRM then falls back to haversine + 30km/h estimate.

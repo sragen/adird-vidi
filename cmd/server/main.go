@@ -22,6 +22,7 @@ import (
 	drivermod "adird.id/vidi/internal/driver"
 	mqttclient "adird.id/vidi/internal/mqtt"
 	"adird.id/vidi/internal/order"
+	passengermod "adird.id/vidi/internal/passenger"
 	"adird.id/vidi/internal/routing"
 )
 
@@ -122,6 +123,10 @@ func main() {
 	tripStateRepo := order.NewTripStateRepo(dbPool, rdb)
 	tripHandler := order.NewTripStateHandler(tripStateRepo, mqttClient)
 
+	// ─── Passenger ─────────────────────────────────────────────────
+	passengerRepo := passengermod.NewRepository(dbPool)
+	passengerHandler := passengermod.NewHandler(passengerRepo)
+
 	// ─── Admin ─────────────────────────────────────────────────────
 	adminRepo := admin.NewRepository(dbPool)
 	adminHandler := admin.NewHandler(adminRepo)
@@ -136,6 +141,7 @@ func main() {
 		r.Mount("/auth", authHandler.Routes())
 		r.Mount("/admin", adminHandler.Routes(authSvc))
 		r.Mount("/driver", driverHandler.Routes(authSvc))
+		r.Mount("/passenger", passengerHandler.Routes(authSvc))
 		r.Mount("/order", orderHandler.Routes(authSvc))
 		r.Mount("/trip", tripHandler.Routes(authSvc))
 		ratingHandler.RegisterRoutes(r, authSvc)

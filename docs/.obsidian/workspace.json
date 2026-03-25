@@ -185,6 +185,11 @@
   },
   "active": "4b9d533afb12e67b",
   "lastOpenFiles": [
+    "design/vici/MapStyle.kt",
+    "design/vici/map_style.json",
+    "design/vici/Theme.kt",
+    "design/vici/Color.kt",
+    "design/vici",
     "13-roadmap.md",
     "progress.md",
     "15-vini-dashboard.md",
